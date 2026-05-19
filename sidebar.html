@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AI Sidebar</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --bg-elev: #171a21;
+      --border: #232733;
+      --text: #e6e8ee;
+      --text-dim: #9aa2b1;
+      --accent: #7c5cff;
+      --accent-soft: rgba(124, 92, 255, 0.18);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* --- Top nav (segmented pill control) --- */
+    .nav {
+      flex-shrink: 0;
+      padding: 10px 10px 8px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .segmented {
+      position: relative;
+      display: flex;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      gap: 2px;
+    }
+
+    /* Sliding indicator that moves under the active tab */
+    .segmented::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: calc((100% - 8px) / 3);
+      height: calc(100% - 8px);
+      background: var(--accent-soft);
+      border: 1px solid rgba(124, 92, 255, 0.35);
+      border-radius: 7px;
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    .segmented[data-active="chat"]::before   { transform: translateX(0%); }
+    .segmented[data-active="claude"]::before { transform: translateX(100%); }
+    .segmented[data-active="gemini"]::before { transform: translateX(200%); }
+
+    .tab {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1px;
+      border-radius: 7px;
+      transition: color 0.15s ease;
+      z-index: 1;
+      font-family: inherit;
+    }
+
+    .tab:hover { color: var(--text); }
+
+    .tab.active { color: var(--text); }
+
+    .tab img {
+      width: 14px;
+      height: 14px;
+      object-fit: contain;
+      display: block;
+      filter: grayscale(40%);
+      opacity: 0.75;
+      transition: filter 0.15s ease, opacity 0.15s ease;
+    }
+
+    .tab:hover img,
+    .tab.active img {
+      filter: none;
+      opacity: 1;
+    }
+
+    .tab:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* --- Iframe views --- */
+    .view {
+      flex: 1;
+      display: none;
+      min-height: 0;
+      background: var(--bg);
+      position: relative;
+    }
+    .view.active { display: block; }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      background: var(--bg);
+    }
+
+    /* --- ChatGPT-only: small floating reload button --- */
+    .chat-reload {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(23, 26, 33, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-dim);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      opacity: 0.35;
+      transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+      z-index: 2;
+      font-family: inherit;
+    }
+    .chat-reload:hover {
+      opacity: 1;
+      color: var(--text);
+      background: var(--bg-elev);
+    }
+
+    /* --- ChatGPT-only: blank-page detection overlay --- */
+    .chat-blank-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: var(--bg);
+      padding: 24px;
+      text-align: center;
+      z-index: 3;
+    }
+    .chat-blank-overlay.show { display: flex; }
+
+    .chat-blank-overlay .msg {
+      color: var(--text-dim);
+      font-size: 13px;
+      max-width: 260px;
+      line-height: 1.5;
+    }
+
+    .chat-blank-overlay .retry {
+      background: var(--accent-soft);
+      border: 1px solid rgba(124, 92, 255, 0.45);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s ease;
+    }
+    .chat-blank-overlay .retry:hover {
+      background: rgba(124, 92, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="segmented" data-active="chat">
+      <button class="tab active" data-view="chat">
+        <img src="chatgpt icon.png" alt="">
+        <span>ChatGPT</span>
+      </button>
+      <button class="tab" data-view="claude">
+        <img src="claude icon 128.png" alt="">
+        <span>Claude</span>
+      </button>
+      <button class="tab" data-view="gemini">
+        <img src="gemini icon.png" alt="">
+        <span>Gemini</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="view active" data-view="chat">
+    <iframe id="chatIframe" data-src="https://chatgpt.com" allow="clipboard-read; clipboard-write"></iframe>
+    <button id="chatReloadBtn" class="chat-reload" title="Reload ChatGPT">&#x21bb;</button>
+    <div id="chatBlankOverlay" class="chat-blank-overlay">
+      <div class="msg">ChatGPT didn't load. This can happen with Cloudflare protection in iframes.</div>
+      <button id="chatBlankRetryBtn" class="retry">Reload ChatGPT</button>
+    </div>
+  </div>
+  <div class="view" data-view="claude">
+    <iframe id="claudeIframe" data-src="https://claude.ai" allow="clipboard-read; clipboard-write"></iframe>
+  </div>
+  <div class="view" data-view="gemini">
+    <iframe id="geminiIframe" data-src="https://gemini.google.com" allow="clipboard-read; clipboard-write"></iframe>
+  </div>
+
+  <script src="sidebar.js"></script>
+</body>
+</html>
