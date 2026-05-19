@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "ad bolck",
+  "name": "AI Sidebar",
   "version": "1.0.0",
   "description": "ChatGPT, Claude, and Gemini in a Chrome side panel.",
   "permissions": ["sidePanel", "declarativeNetRequest", "tabs", "storage", "activeTab", "scripting"],
